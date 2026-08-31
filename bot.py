@@ -3,7 +3,10 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Thread
 from typing import Any
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
@@ -936,6 +939,37 @@ async def panel_command(interaction: discord.Interaction) -> None:
     )
 
 
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        request_path = self.path.split("?", maxsplit=1)[0]
+        if request_path != "/":
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+
+        response_body = "Transione está online".encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(response_body)))
+        self.end_headers()
+        self.wfile.write(response_body)
+
+    def log_message(self, format: str, *args: Any) -> None:
+        logger.info("HTTP: %s", format % args)
+
+
+def start_http_server() -> ThreadingHTTPServer:
+    port = int(os.getenv("PORT", "5000"))
+    server = ThreadingHTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    http_thread = Thread(
+        target=server.serve_forever,
+        name="transione-http",
+        daemon=True,
+    )
+    http_thread.start()
+    logger.info("Servidor HTTP ativo em 0.0.0.0:%d", port)
+    return server
+
+
 def main() -> None:
     token = os.getenv("DISCORD_TOKEN")
     if not token:
@@ -944,7 +978,12 @@ def main() -> None:
             "Adicione o token em Secrets antes de iniciar o bot."
         )
     get_staff_user_id()
-    bot.run(token)
+    http_server = start_http_server()
+    try:
+        bot.run(token)
+    finally:
+        http_server.shutdown()
+        http_server.server_close()
 
 
 if __name__ == "__main__":

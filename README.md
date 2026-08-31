@@ -39,8 +39,10 @@ O token nunca é armazenado no código; o bot lê exclusivamente `DISCORD_TOKEN`
 ## GitHub e Render
 
 O projeto inclui `requirements.txt`, `.python-version` e `render.yaml` para
-instalação e execução como **Background Worker** no Render. O worker usa
-`python bot.py` e não precisa expor uma porta HTTP.
+instalação e execução como **Web Service** no Render. O processo continua
+executando o bot Discord e também inicia um servidor HTTP mínimo em
+`0.0.0.0:$PORT`; a rota `/` responde `Transione está online` para o health
+check do Render.
 
 ### Publicar no GitHub
 
@@ -78,7 +80,7 @@ esta preparação.
 5. Faça o deploy e confira os logs. O serviço deve iniciar com `python bot.py`
    e mostrar que o bot conectou ao Discord.
 
-O Render trata o `render.yaml` como um Background Worker contínuo. O arquivo
+O Render trata o `render.yaml` como um Web Service contínuo. O arquivo
 `orders.json` é estado local e continua ignorado pelo Git; portanto, os pedidos
 existentes permanecem no Replit, mas não são enviados ao GitHub. Para manter
 pedidos também após recriações do serviço no Render, será necessário configurar

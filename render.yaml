@@ -1,0 +1,12 @@
+services:
+  - type: worker
+    name: transione-discord-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      # Render asks for these values in the Dashboard; no secret value is stored here.
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: NIKUKIER_USER_ID
+        sync: false
